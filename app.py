@@ -65,14 +65,17 @@ with app.app_context():
     db.create_all()
 
 def check_stale_sessions():
-    """Mark sessions as completed if no heartbeat for 30 seconds"""
-    threshold = datetime.utcnow() - timedelta(seconds=30)
+    """Mark sessions as completed if no heartbeat for 120 seconds"""
+    threshold = datetime.utcnow() - timedelta(seconds=120)
     stale_sessions = Session.query.filter(
         Session.status == 'active',
         Session.last_heartbeat < threshold
     ).all()
     
     for session in stale_sessions:
+        missed_seconds = int((datetime.utcnow() - session.last_heartbeat).total_seconds())
+        print(f"DEBUG: Marking session {session.id} ({session.device_id}) as stale. Last heartbeat was {missed_seconds}s ago.")
+        
         session.status = 'completed'
         session.session_end = session.last_heartbeat
         session.runtime_seconds = int((session.session_end - session.session_start).total_seconds())
