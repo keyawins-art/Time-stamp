@@ -4,6 +4,7 @@ from flask_cors import CORS
 from datetime import datetime, timedelta
 import os
 import csv
+import io
 from pathlib import Path
 
 app = Flask(__name__)
@@ -431,6 +432,58 @@ def get_device_history(device_id):
             'history': history
         })
     
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/device/<device_id>/export')
+def export_device_csv(device_id):
+    """Export all session data for a device as CSV"""
+    try:
+        # Get all sessions for this device
+        sessions = Session.query.filter_by(device_id=device_id).order_by(Session.date.desc(), Session.session_start.desc()).all()
+        
+        # Group by date to calculate day totals
+        daily_totals = {}
+        for s in sessions:
+            if s.date not in daily_totals:
+                daily_totals[s.date] = 0
+            
+            if s.status == 'completed':
+                daily_totals[s.date] += s.runtime_seconds
+            elif s.status == 'active':
+                current_runtime = int((datetime.utcnow() - s.session_start).total_seconds())
+                daily_totals[s.date] += current_runtime
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Headers
+        writer.writerow(['Date', 'Session ID', 'Start Time', 'End Time', 'Runtime', 'Status', 'Day Total (HH:MM)'])
+        
+        for s in sessions:
+            # Format Day Total only once per date
+            dt_seconds = daily_totals.get(s.date, 0)
+            dt_hours = dt_seconds // 3600
+            dt_minutes = (dt_seconds % 3600) // 60
+            day_total_str = f"{dt_hours}h {dt_minutes}m"
+            
+            writer.writerow([
+                s.date,
+                f"#{s.device_session_id}",
+                s.session_start.strftime('%H:%M:%S'),
+                s.session_end.strftime('%H:%M:%S') if s.session_end else 'Active',
+                s.format_runtime() if hasattr(s, 'format_runtime') else 'N/A',
+                s.status.capitalize(),
+                day_total_str
+            ])
+        
+        output.seek(0)
+        from flask import make_response
+        res = make_response(output.getvalue())
+        res.headers["Content-Disposition"] = f"attachment; filename={device_id}_history.csv"
+        res.headers["Content-type"] = "text/csv"
+        return res
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
