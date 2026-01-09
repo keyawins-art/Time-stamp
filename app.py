@@ -150,9 +150,9 @@ def start_session():
             session.session_end = session.last_heartbeat
             session.runtime_seconds = int((session.session_end - session.session_start).total_seconds())
         
-        # Calculate next session ID for this device for TODAY
-        last_session_today = Session.query.filter_by(device_id=device_id, date=today).order_by(Session.device_session_id.desc()).first()
-        next_session_id = (last_session_today.device_session_id + 1) if last_session_today and last_session_today.device_session_id else 1
+        # Calculate next session ID for this device (global sequence for this device)
+        last_session = Session.query.filter_by(device_id=device_id).order_by(Session.device_session_id.desc()).first()
+        next_session_id = (last_session.device_session_id + 1) if last_session and last_session.device_session_id else 1
 
         # Create new session
         new_session = Session(
@@ -342,7 +342,7 @@ def get_daily_summary(device_id, date):
         sessions = Session.query.filter(
             Session.device_id == device_id,
             Session.date == date
-        ).all()
+        ).order_by(Session.session_start.desc()).all()
         
         total_runtime = sum(s.runtime_seconds for s in sessions if s.status == 'completed')
         
