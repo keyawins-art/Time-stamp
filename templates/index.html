@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Tracker - Device Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1rem 0;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .logo {
+            max-width: 300px;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        h1 {
+            display: none;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            justify-content: center;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .devices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            animation: fadeInUp 0.8s ease 0.2s backwards;
+        }
+
+        .device-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .device-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .device-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .device-card.running::before {
+            background: linear-gradient(90deg, #4ade80, #22c55e);
+        }
+
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .device-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #9ca3af;
+        }
+
+        .status-indicator.running {
+            background: #22c55e;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.running {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-badge.stopped {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .device-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            background: #f9fafb;
+            padding: 1rem;
+            border-radius: 12px;
+        }
+
+        .stat-item-label {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-item-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .device-footer {
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            color: #6b7280;
+        }
+
+        .empty-state-icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <img src="/static/logo.jpg" alt="Keya Fusion Technology Private Limited" class="logo">
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-label">Total Devices</div>
+                <div class="stat-value" id="totalDevices">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active Now</div>
+                <div class="stat-value" id="activeDevices">0</div>
+            </div>
+        </div>
+
+        <div id="loadingState" class="loading">
+            <div class="spinner"></div>
+            <p>Loading devices...</p>
+        </div>
+
+        <div id="devicesGrid" class="devices-grid" style="display: none;">
+        </div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">📱</div>
+            <h2>No Devices Yet</h2>
+            <p>Start a client to begin tracking sessions</p>
+        </div>
+    </div>
+
+    <script>
+        async function fetchDevices() {
+            try {
+                const response = await fetch('/api/devices');
+                const data = await response.json();
+
+                const loadingState = document.getElementById('loadingState');
+                const devicesGrid = document.getElementById('devicesGrid');
+                const emptyState = document.getElementById('emptyState');
+
+                // Update stats
+                document.getElementById('totalDevices').textContent = data.count;
+                const activeCount = data.devices.filter(d => d.status === 'running').length;
+                document.getElementById('activeDevices').textContent = activeCount;
+
+                if (data.count === 0) {
+                    loadingState.style.display = 'none';
+                    devicesGrid.style.display = 'none';
+                    emptyState.style.display = 'block';
+                } else {
+                    loadingState.style.display = 'none';
+                    emptyState.style.display = 'none';
+                    devicesGrid.style.display = 'grid';
+
+                    // Clear and populate devices
+                    devicesGrid.innerHTML = '';
+                    data.devices.forEach(device => {
+                        const card = createDeviceCard(device);
+                        devicesGrid.appendChild(card);
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching devices:', error);
+            }
+        }
+
+        function getOrdinal(n) {
+            const s = ["th", "st", "nd", "rd"];
+            const v = n % 100;
+            return n + (s[(v - 20) % 10] || s[v] || s[0]);
+        }
+
+        function formatCustomDate(date) {
+            const d = new Date(date);
+            const day = d.getDate();
+            const month = d.toLocaleDateString('en-US', { month: 'short' });
+            const year = d.getFullYear();
+            return `${getOrdinal(day)} ${month} ${year}`;
+        }
+
+        function createDeviceCard(device) {
+            const card = document.createElement('div');
+            card.className = `device-card ${device.status}`;
+            card.onclick = () => window.location.href = `/device/${encodeURIComponent(device.device_id)}`;
+
+            const statusClass = device.status === 'running' ? 'running' : 'stopped';
+            const statusText = device.status === 'running' ? 'Running' : 'Stopped';
+
+            card.innerHTML = `
+                <div class="device-header">
+                    <div class="device-name">
+                        <span class="status-indicator ${statusClass}"></span>
+                        ${escapeHtml(device.device_id)}
+                    </div>
+                    <span class="status-badge ${statusClass}">${statusText}</span>
+                </div>
+                <div class="device-stats">
+                    <div class="stat-item">
+                        <div class="stat-item-label">Today's Runtime</div>
+                        <div class="stat-item-value">${escapeHtml(device.today_runtime_formatted)}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-item-label">Sessions Today</div>
+                        <div class="stat-item-value">${device.session_count_today}</div>
+                    </div>
+                </div>
+                <div class="device-footer">
+                    Last active: ${device.last_active ? formatTime(device.last_active) : 'Never'}
+                </div>
+            `;
+
+            return card;
+        }
+
+        function formatTime(timeStr) {
+            const date = new Date(timeStr + ' UTC');
+            // Format: 16th Dec 2025, 11:30:00 AM
+            return formatCustomDate(date) + ', ' + date.toLocaleTimeString();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initial fetch
+        fetchDevices();
+
+        // Auto-refresh every 5 seconds
+        setInterval(fetchDevices, 5000);
+    </script>
+</body>
+
+</html>
